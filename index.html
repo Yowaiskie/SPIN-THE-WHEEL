@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accurate Prize Wheel</title>
+    <style>
+        @keyframes gradientAnimation {
+            0% { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+            50% { background: linear-gradient(135deg, #a1c4fd, #c2e9fb); }
+            100% { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            animation: gradientAnimation 15s ease infinite;
+            background-size: cover;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            border-radius: 50%;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            display: block;
+            margin: 20px auto;
+            background: linear-gradient(135deg, #f2f2f2, #e0e0e0);
+        }
+
+        button {
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049; /* Darker green */
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="wheelCanvas" width="400" height="400"></canvas>
+    <br>
+    <select id="prizeSelect">
+        <option value="0">Prize 0</option>
+        <option value="1">Prize 1</option>
+        <option value="2">Prize 2</option>
+        <option value="3">Prize 3</option>
+        <option value="4">Prize 4</option>
+        <option value="5">Prize 5</option>
+        <option value="6">Prize 6</option>
+        <option value="7">Prize 7</option>
+    </select>
+    <br>
+    <button id="spinButton">Spin the Wheel</button>
+    <button id="normalSpinButton">Normal Spin</button>
+
+    <script>
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinButton = document.getElementById('spinButton');
+        const normalSpinButton = document.getElementById('normalSpinButton');
+        const prizeSelect = document.getElementById('prizeSelect');
+
+        let startAngle = 0;
+        const arc = Math.PI / 4; // Divides the circle into 8 sections (for 8 prizes)
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+
+        const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#00FFFF', '#FF00FF', '#FFA500', '#800080'];
+        const labels = ['Prize 3', 'Prize 4', 'Prize 5', 'Prize 6', 'Prize 7', 'Prize 0', 'Prize 1', 'Prize 2'];
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+            // Draw the wheel segments
+            for (let i = 0; i < 8; i++) {
+                const angle = startAngle + i * arc;
+                ctx.beginPath();
+                ctx.arc(200, 200, 180, angle, angle + arc, false);
+                ctx.lineTo(200, 200);
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                ctx.save();
+                ctx.translate(200 + Math.cos(angle + arc / 2) * 140, 200 + Math.sin(angle + arc / 2) * 140);
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                ctx.fillStyle = "#FFFFFF";
+                ctx.font = 'bold 20px "Comic Sans MS"';
+                ctx.textAlign = 'center';
+                ctx.fillText(labels[i], 0, 0);
+                ctx.restore();
+            }
+
+            // Draw the stationary indicator arrow
+            drawArrow();
+        }
+
+        function drawArrow() {
+            ctx.save();
+            ctx.translate(200, 20); // Move to the top of the canvas
+            ctx.beginPath();
+            ctx.moveTo(-15, 0); // Arrow points downward
+            ctx.lineTo(15, 0);
+            ctx.lineTo(0, 30);
+            ctx.closePath();
+            ctx.fillStyle = '#FF0000';
+            ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function rotateWheel() {
+            spinTime = 0;
+            function rotate() {
+                spinTime += 30;
+                if (spinTime >= spinTimeTotal) {
+                    return; // Stop the rotation
+                }
+                const remainingSpin = (spinTimeTotal - spinTime) / spinTimeTotal;
+                startAngle += remainingSpin * 10; // Control the deceleration
+                drawWheel();
+                requestAnimationFrame(rotate);
+            }
+            rotate();
+        }
+
+        function spinToPrize(prizeIndex) {
+            console.log(`Landing on prize index: ${prizeIndex}`); // Log the forced prize index
+
+            const prizeAngle = prizeIndex * arc; // The angle for the selected prize
+            const correctionAngle = Math.PI / 2; // Correction to align the arrow
+
+            // Calculate the total rotation needed to get the selected prize to land on the arrow
+            const targetAngle = -prizeAngle + correctionAngle;
+            const fullRotations = 10; // Number of full rotations before stopping
+            const finalAngle = targetAngle + fullRotations * 2 * Math.PI; // Total angle including extra spins
+
+            spinTimeTotal = 3000; // Fixed spin duration for the effect
+            startAngle = finalAngle % (2 * Math.PI); // Normalize the angle
+
+            // Animate the wheel spin
+            rotateWheel();
+        }
+
+        // Spin normally based on dropdown selection
+        spinButton.addEventListener('click', () => {
+            const selectedPrize = parseInt(prizeSelect.value);
+            spinToPrize(selectedPrize); // Spin to the selected prize
+        });
+
+        // Spin normally with random prize
+        function spinNormally() {
+            // Generate a random prize index
+            const randomPrizeIndex = Math.floor(Math.random() * labels.length);
+            spinToPrize(randomPrizeIndex); // Spin to the randomly selected prize
+        }
+
+        normalSpinButton.addEventListener('click', () => {
+            spinNormally(); // Perform a random spin
+        });
+
+        drawWheel();
+    </script>
+</body>
+</html>
